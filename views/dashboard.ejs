@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Dashboard</title>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				max-width: 800px;
+				margin: 20px auto;
+				padding: 20px;
+				background-color: #f5f5f5;
+			}
+			.container {
+				background: white;
+				padding: 30px;
+				border-radius: 10px;
+				box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+			}
+			h1 {
+				text-align: center;
+				color: #333;
+				margin-bottom: 30px;
+			}
+			.success {
+				background: #e8f5e8;
+				padding: 15px;
+				border-radius: 5px;
+				margin-bottom: 20px;
+				border-left: 4px solid #4caf50;
+			}
+			.jwt-info {
+				background: #f9f9f9;
+				padding: 20px;
+				border-radius: 5px;
+				margin-bottom: 20px;
+				border-left: 4px solid #2196f3;
+			}
+			.jwt-info h3 {
+				margin-top: 0;
+				color: #1976d2;
+			}
+			.jwt-token {
+				word-break: break-all;
+				background: #fff;
+				padding: 10px;
+				border-radius: 5px;
+				border: 1px solid #ddd;
+				font-family: monospace;
+				font-size: 12px;
+			}
+			.attack-vectors {
+				background: #fff3e0;
+				padding: 20px;
+				border-radius: 5px;
+				margin-bottom: 20px;
+				border-left: 4px solid #ff9800;
+			}
+			.attack-vectors h3 {
+				margin-top: 0;
+				color: #f57c00;
+			}
+			.attack-vector {
+				background: white;
+				padding: 15px;
+				margin: 10px 0;
+				border-radius: 5px;
+				border: 1px solid #ddd;
+			}
+			.attack-vector h4 {
+				margin-top: 0;
+				color: #333;
+			}
+			.flag {
+				background: #e8f5e8;
+				padding: 15px;
+				border-radius: 5px;
+				border-left: 4px solid #4caf50;
+				font-family: monospace;
+				font-size: 14px;
+				font-weight: bold;
+				color: #2e7d32;
+			}
+			.user-info {
+				background: #e3f2fd;
+				padding: 15px;
+				border-radius: 5px;
+				margin-bottom: 20px;
+				border-left: 4px solid #2196f3;
+			}
+			.logout-btn {
+				background: #f44336;
+				color: white;
+				border: none;
+				padding: 8px 16px;
+				border-radius: 5px;
+				cursor: pointer;
+				text-decoration: none;
+				display: block;
+				margin: 30px auto 0;
+				text-align: center;
+				width: fit-content;
+				font-size: 14px;
+			}
+			.logout-btn:hover {
+				background: #d32f2f;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>Welcome to Dashboard</h1>
+
+			<div class="success">
+				<h3>✅ Login Successful!</h3>
+				<p>Welcome, <%= role ? role : 'guest' %>!</p>
+			</div>
+
+			<% if (flag) { %>
+			<div class="flag">FLAG: <%= flag %></div>
+			<% } %>
+
+			<div class="nav-links">
+				<a href="/" class="logout-btn">Logout</a>
+			</div>
+		</div>
+	</body>
+</html>

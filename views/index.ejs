@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>JWT Attack Lab</title>
+		<style>
+			body {
+				font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+				max-width: 800px;
+				margin: 0 auto;
+				padding: 20px;
+				background-color: #f5f5f5;
+				line-height: 1.6;
+			}
+			.container {
+				background-color: white;
+				padding: 30px;
+				border-radius: 10px;
+				box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+			}
+			h1 {
+				color: #2c3e50;
+				text-align: center;
+				margin-bottom: 30px;
+				border-bottom: 3px solid #3498db;
+				padding-bottom: 10px;
+			}
+			h2 {
+				color: #34495e;
+				margin-top: 30px;
+				margin-bottom: 15px;
+			}
+			.challenge-list {
+				list-style: none;
+				padding: 0;
+			}
+			.challenge-item {
+				margin-bottom: 15px;
+				padding: 15px;
+				background-color: #ecf0f1;
+				border-radius: 5px;
+				border-left: 4px solid #3498db;
+				transition: all 0.3s ease;
+			}
+			.challenge-item:hover {
+				background-color: #d5dbdb;
+				transform: translateX(5px);
+			}
+			.challenge-link {
+				text-decoration: none;
+				color: #2c3e50;
+				font-weight: bold;
+				font-size: 18px;
+				display: block;
+				margin-bottom: 5px;
+			}
+			.challenge-link:hover {
+				color: #3498db;
+			}
+			.challenge-description {
+				color: #7f8c8d;
+				font-size: 14px;
+				margin: 0;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>🔐 JWT Attack Lab</h1>
+
+			<h2>📋 Challenge List</h2>
+			<ul class="challenge-list">
+				<li class="challenge-item">
+					<a href="/alg-none" class="challenge-link">
+						1. Algorithm None Attack
+					</a>
+					<p class="challenge-description">
+						Attack JWT by using the "none" algorithm to bypass
+						authentication.
+					</p>
+				</li>
+				<li class="challenge-item">
+					<a href="/weak-secret" class="challenge-link">
+						2. Weak Secret Attack
+					</a>
+					<p class="challenge-description">
+						Attack JWT using weak or guessable secret keys through
+						brute force.
+					</p>
+				</li>
+				<li class="challenge-item">
+					<a href="/jwk" class="challenge-link">
+						3. JWK Injection Attack
+					</a>
+					<p class="challenge-description">
+						Attack JWT by injecting JWK (JSON Web Key) into the
+						header to use the attacker's key.
+					</p>
+				</li>
+				<li class="challenge-item">
+					<a href="/jku" class="challenge-link">
+						4. JKU (JWK Set URL) Attack
+					</a>
+					<p class="challenge-description">
+						Attack JWT by using JKU to retrieve JWK from an external
+						source.
+					</p>
+				</li>
+				<li class="challenge-item">
+					<a href="/kid" class="challenge-link">
+						5. KID (Key ID) Attack
+					</a>
+					<p class="challenge-description">
+						Attack JWT by using KID to specify the key used in the
+						authentication process.
+					</p>
+				</li>
+			</ul>
+		</div>
+	</body>
+</html>
