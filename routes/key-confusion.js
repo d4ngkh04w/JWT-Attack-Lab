@@ -5,25 +5,23 @@ import {
 	renderLogin,
 	renderDashboard,
 	createJWTPayload,
-	createJWTHeader,
 	handleTokenError,
-	parseJWTHeader,
+	createJWTHeader,
 	isTokenExpired,
 } from "../utils/auth.js";
-import { generateFlag } from "../utils/crypto.js";
-import { loadSecret } from "../utils/keys.js";
+import { generateFlag, randomUUID } from "../utils/crypto.js";
+import { PUBLIC_KEY, PRIVATE_KEY } from "../utils/keys.js";
 import { signJWT, verifyJWT } from "../utils/jwt.js";
 
 const router = express.Router();
 const FLAG = generateFlag();
-const LOGIN_ACTION = "/kid";
-const SECRET = await loadSecret();
+const LOGIN_ACTION = "/key-confusion";
 
 router.get("/", (req, res) => {
 	renderLogin(res, LOGIN_ACTION);
 });
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
 	const { username, password } = req.body;
 	const user = authenticateUser(username, password);
 
@@ -33,14 +31,14 @@ router.post("/", (req, res) => {
 
 	const payload = createJWTPayload(user);
 	const header = createJWTHeader({
-		kid: "secret.key",
+		kid: randomUUID(),
 	});
 
-	signJWT({ payload, header }, SECRET, "HS256")
+	signJWT({ payload, header }, PRIVATE_KEY, "RS256")
 		.then((token) => {
 			setAuthCookie(res, token);
 			console.log("Token created for user:", username);
-			res.redirect("/kid/dashboard");
+			res.redirect("/key-confusion/dashboard");
 		})
 		.catch((err) => {
 			console.error("Token creation failed:", err);
@@ -52,26 +50,10 @@ router.get("/dashboard", async (req, res) => {
 	const token = req.cookies.token;
 
 	if (!token) {
-		return res.redirect("/kid");
+		return res.redirect("/key-confusion");
 	}
 
-	const header = parseJWTHeader(token);
-	if (!header) {
-		return res.redirect("/kid");
-	}
-
-	let verificationKey = SECRET;
-
-	if (header.kid) {
-		verificationKey = await loadSecret(header.kid);
-		console.log("Verification Key: ", verificationKey);
-		if (verificationKey === null) {
-			console.error("Verification key not found for KID:", header.kid);
-			return res.redirect("/kid");
-		}
-	}
-
-	verifyJWT(token, verificationKey)
+	verifyJWT(token, PUBLIC_KEY)
 		.then((decoded) => {
 			if (isTokenExpired(decoded)) {
 				return handleTokenError(res, LOGIN_ACTION, "Token has expired");

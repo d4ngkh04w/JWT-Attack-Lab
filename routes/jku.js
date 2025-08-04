@@ -1,5 +1,4 @@
 import express from "express";
-import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import {
 	authenticateUser,
@@ -8,9 +7,13 @@ import {
 	renderDashboard,
 	createJWTPayload,
 	handleTokenError,
+	parseJWTHeader,
+	createJWTHeader,
+	isTokenExpired,
 } from "../utils/auth.js";
 import { jwkToPem, generateFlag } from "../utils/crypto.js";
-import { publicKey, privateKey } from "../utils/keys.js";
+import { PUBLIC_KEY, PRIVATE_KEY } from "../utils/keys.js";
+import { signJWT, verifyJWT } from "../utils/jwt.js";
 
 const router = express.Router();
 const FLAG = generateFlag();
@@ -28,18 +31,25 @@ router.post("/", (req, res) => {
 		return renderLogin(res, LOGIN_ACTION, "Invalid credentials");
 	}
 
+	if (!PRIVATE_KEY) {
+		return renderLogin(res, LOGIN_ACTION, "Server configuration error");
+	}
+
 	const payload = createJWTPayload(user);
-	const token = jwt.sign(payload, privateKey, {
-		algorithm: "RS256",
-		expiresIn: "30m",
-		header: {
-			kid: crypto.randomUUID(),
-		},
+	const header = createJWTHeader({
+		kid: crypto.randomUUID(),
 	});
 
-	setAuthCookie(res, token);
-	console.log("Token: ", token);
-	res.redirect("/jku/dashboard");
+	signJWT({ payload, header }, PRIVATE_KEY, "RS256")
+		.then((token) => {
+			setAuthCookie(res, token);
+			console.log("Token: ", token);
+			res.redirect("/jku/dashboard");
+		})
+		.catch((err) => {
+			console.error("Token creation failed:", err);
+			return renderLogin(res, LOGIN_ACTION, "Token creation failed");
+		});
 });
 
 router.get("/dashboard", async (req, res) => {
@@ -49,21 +59,26 @@ router.get("/dashboard", async (req, res) => {
 		return res.redirect("/jku");
 	}
 
-	const decoded = jwt.decode(token, { complete: true });
-	if (!decoded) return res.redirect("/jku");
+	const header = parseJWTHeader(token);
 
-	let verificationKey = publicKey;
+	if (!header) {
+		return res.redirect("/jku");
+	}
 
-	if (decoded.header.jku) {
+	if (header.alg !== "RS256") {
+		return res.redirect("/jku");
+	}
+
+	let verificationKey = PUBLIC_KEY;
+
+	if (header.jku) {
 		try {
-			const jwks = await fetch(decoded.header.jku).then((res) =>
-				res.json()
-			);
+			const jwks = await fetch(header.jku).then((res) => res.json());
 			console.log("Fetched JWKs:", jwks);
 
-			const jwk = jwks.keys.find((k) => k.kid === decoded.header.kid);
+			const jwk = jwks.keys.find((k) => k.kid === header.kid);
 			if (!jwk) {
-				console.error("JWK not found for kid:", decoded.header.kid);
+				console.error("JWK not found for kid:", header.kid);
 				return res.redirect("/jku");
 			}
 
@@ -79,18 +94,16 @@ router.get("/dashboard", async (req, res) => {
 		}
 	}
 
-	jwt.verify(
-		token,
-		verificationKey,
-		{ algorithms: ["RS256"] },
-		(err, decoded) => {
-			if (err) {
-				return handleTokenError(res, LOGIN_ACTION, err);
+	verifyJWT(token, verificationKey)
+		.then((decoded) => {
+			if (isTokenExpired(decoded)) {
+				return handleTokenError(res, LOGIN_ACTION, "Token has expired");
 			}
-
 			renderDashboard(res, decoded.role, FLAG);
-		}
-	);
+		})
+		.catch((err) => {
+			return handleTokenError(res, LOGIN_ACTION, err);
+		});
 });
 
 export default router;

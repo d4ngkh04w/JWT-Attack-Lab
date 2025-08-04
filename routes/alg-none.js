@@ -1,5 +1,5 @@
 import express from "express";
-import jwt from "jsonwebtoken";
+import jwt from "json-web-token";
 import {
 	authenticateUser,
 	createJWTPayload,
@@ -7,6 +7,8 @@ import {
 	renderDashboard,
 	renderLogin,
 	setAuthCookie,
+	isTokenExpired,
+	verifyNoneAlgToken,
 } from "../utils/auth.js";
 import {
 	generateFlag,
@@ -20,18 +22,13 @@ const FLAG = generateFlag();
 const LOGIN_ACTION = "/alg-none";
 
 const verifyToken = (token, secret, callback) => {
-	jwt.verify(token, secret, (err, decoded) => {
+	jwt.decode(secret, token, (err, decoded) => {
 		if (!err) return callback(null, decoded);
 
-		jwt.verify(
-			token,
-			null,
-			{ algorithms: ["none"] },
-			(noneErr, noneDecoded) => {
-				if (!noneErr) return callback(null, noneDecoded);
-				callback(err || noneErr);
-			}
-		);
+		const noneDecoded = verifyNoneAlgToken(token);
+		if (noneDecoded) return callback(null, noneDecoded);
+
+		callback(err || new Error("Invalid token"));
 	});
 };
 
@@ -48,16 +45,17 @@ router.post("/", (req, res) => {
 	}
 
 	const payload = createJWTPayload(user);
-	const token = jwt.sign(payload, SECRET, {
-		expiresIn: "30m",
-		header: {
-			kid: randomUUID(),
-		},
+	const header = {
+		kid: randomUUID(),
+	};
+	jwt.encode(SECRET, { payload, header }, "HS256", (err, token) => {
+		if (err) {
+			return renderLogin(res, LOGIN_ACTION, "Token creation failed");
+		}
+		console.log("Token: ", token);
+		setAuthCookie(res, token);
+		res.redirect("/alg-none/dashboard");
 	});
-	console.log("Token: ", token);
-
-	setAuthCookie(res, token);
-	res.redirect("/alg-none/dashboard");
 });
 
 router.get("/dashboard", (req, res) => {
@@ -70,6 +68,10 @@ router.get("/dashboard", (req, res) => {
 	verifyToken(token, SECRET, (err, decoded) => {
 		if (err) {
 			return handleTokenError(res, LOGIN_ACTION, err);
+		}
+
+		if (isTokenExpired(decoded)) {
+			return handleTokenError(res, LOGIN_ACTION, "Token has expired");
 		}
 
 		renderDashboard(res, decoded.role, FLAG);

@@ -1,14 +1,16 @@
 import express from "express";
-import jwt from "jsonwebtoken";
 import {
 	authenticateUser,
 	createJWTPayload,
+	createJWTHeader,
 	handleTokenError,
 	renderDashboard,
 	renderLogin,
+	isTokenExpired,
 	setAuthCookie,
 } from "../utils/auth.js";
 import { generateFlag, randomUUID } from "../utils/crypto.js";
+import { signJWT, verifyJWT } from "../utils/jwt.js";
 
 const router = express.Router();
 const WEAK_SECRET = "s3cr3t";
@@ -28,16 +30,20 @@ router.post("/", (req, res) => {
 	}
 
 	const payload = createJWTPayload(user);
-	const token = jwt.sign(payload, WEAK_SECRET, {
-		expiresIn: "30m",
-		header: {
-			kid: randomUUID(),
-		},
+	const header = createJWTHeader({
+		kid: randomUUID(),
 	});
-	console.log("Token: ", token);
 
-	setAuthCookie(res, token);
-	res.redirect("/weak-secret/dashboard");
+	signJWT({ payload, header }, WEAK_SECRET, "HS256")
+		.then((token) => {
+			setAuthCookie(res, token);
+			console.log("Token created for user:", username);
+			res.redirect("/weak-secret/dashboard");
+		})
+		.catch((err) => {
+			console.error("Token creation failed:", err);
+			return renderLogin(res, LOGIN_ACTION, "Token creation failed");
+		});
 });
 
 router.get("/dashboard", (req, res) => {
@@ -47,18 +53,16 @@ router.get("/dashboard", (req, res) => {
 		return res.redirect("/weak-secret");
 	}
 
-	jwt.verify(
-		token,
-		WEAK_SECRET,
-		{ algorithms: ["HS256"] },
-		(err, decoded) => {
-			if (err) {
-				return handleTokenError(res, LOGIN_ACTION, err);
+	verifyJWT(token, WEAK_SECRET)
+		.then((decoded) => {
+			if (isTokenExpired(decoded)) {
+				return handleTokenError(res, LOGIN_ACTION, "Token has expired");
 			}
-
 			renderDashboard(res, decoded.role, FLAG);
-		}
-	);
+		})
+		.catch((err) => {
+			return handleTokenError(res, LOGIN_ACTION, err);
+		});
 });
 
 export default router;

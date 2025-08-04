@@ -1,10 +1,15 @@
 import fs from "fs";
 
-const loadKeys = () => {
+const loadKeys = async () => {
 	try {
+		const [publicKey, privateKey] = await Promise.all([
+			fs.promises.readFile("./keys/public.pem", "utf8"),
+			fs.promises.readFile("./keys/private.pem", "utf8"),
+		]);
+
 		return {
-			publicKey: fs.readFileSync("./keys/public.pem", "utf8"),
-			privateKey: fs.readFileSync("./keys/private.pem", "utf8"),
+			publicKey: publicKey.trim(),
+			privateKey: privateKey.trim(),
 		};
 	} catch (error) {
 		console.error("Error loading keys:", error);
@@ -12,19 +17,24 @@ const loadKeys = () => {
 	}
 };
 
-const loadSecret = (file = "secret.key") => {
+const loadSecret = async (file = "secret.key") => {
 	try {
-		if (!fs.existsSync(`./keys/${file}`)) {
-			console.error(`Key file ${file} does not exist.`);
-			return null;
-		}
-		return fs.readFileSync(`./keys/${file}`, "utf8").trim() || "";
+		const filePath = `./keys/${file}`;
+
+		await fs.promises.access(filePath, fs.constants.F_OK);
+
+		const content = await fs.promises.readFile(filePath, "utf8");
+		return content.trim() || "";
 	} catch (error) {
-		console.error("Error loading secret key:", error);
+		if (error.code === "ENOENT") {
+			console.error(`Key file ${file} does not exist.`);
+		} else {
+			console.error("Error loading secret key:", error);
+		}
 		return null;
 	}
 };
 
-const { publicKey, privateKey } = loadKeys();
+const { publicKey, privateKey } = await loadKeys();
 
-export { publicKey, privateKey, loadSecret };
+export { publicKey as PUBLIC_KEY, privateKey as PRIVATE_KEY, loadSecret };
